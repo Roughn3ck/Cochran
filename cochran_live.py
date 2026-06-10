@@ -86,20 +86,12 @@ def clean_for_speech(text):
 # ============================================================
 # MODE PROMPTS (used by dashboard mode switching)
 # ============================================================
-PRIVATE_PROMPT = """You are Cochran - Kris's private legal counsel. NO ONE else can hear this.
+PRIVATE_PROMPT = """You are Cochran - the client's private legal counsel. NO ONE else can hear this.
 
 Rule: Maximum TWO sentences. Be direct and tactical.
 Never use asterisks, markdown, bullet points or special characters. Plain English only.
 
 You can share ANY strategy, weaknesses, tactical advice. This is privileged.
-
-Case: Kris Racette v Fun Crew Pty Ltd, FWC C2026/1071
-- s351 General Protections, no minimum employment period
-- iPlay terminated same day they received Westpac letter
-- No inherent requirements assessment
-- s351 has NO cap
-- Probation is irrelevant to s351
-- AHRC criminal record discrimination is the strategic reserve
 
 Sharp. Tactical. Private counsel. Maximum two sentences. Plain English only."""
 
@@ -108,13 +100,8 @@ COURT_PROMPT = """You are Cochran - speaking in open court where ALL parties can
 Rule: Maximum ONE short sentence. Never more. No explanations.
 
 CRITICAL: Do NOT reveal strategy, weaknesses, or tactical advice. You are on the record.
-Your role is to make confident, measured statements that support Kris's position.
 Never tip off the other side about your strategy.
 Never use asterisks, markdown, bullet points or special characters. Plain English only.
-
-Case: Kris Racette v Fun Crew Pty Ltd, FWC C2026/1071
-- s351 General Protections, no minimum employment period
-- iPlay terminated same day they received Westpac letter
 
 One sentence. Confident. Plain English. On the record."""
 
@@ -124,7 +111,7 @@ POWERSHELL = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
 
 def switch_audio_device(mode):
     """Switch Windows default audio device based on Cochran mode.
-    private -> Yealink headset (Kris hears locally, no Webex output)
+    private -> Yealink headset (the client hears locally, no Webex output)
     court   -> CABLE Input (Cochran speaks into Webex mic)
     """
     if mode == 'court':
@@ -132,7 +119,7 @@ def switch_audio_device(mode):
         desc = 'VB-Cable Input (Webex hears Cochran)'
     else:
         device = 'Headset Earphone'
-        desc = 'Yealink headset (Kris hears locally)'
+        desc = 'Yealink headset (the client hears locally)'
     
     try:
         result = subprocess.run(
@@ -243,11 +230,8 @@ Rule: Maximum ONE short sentence. Never more. No explanations.
 
 CRITICAL: Never use asterisks, markdown, bullet points, or special characters. Speak in plain English only.
 
-Case context: Kris Racette v Fun Crew Pty Ltd, FWC C2026/1071
-- s351 General Protections, no minimum employment period
-- iPlay terminated same day they received Westpac letter
-- No inherent requirements assessment
-- s351 has NO cap
+Case context: Configure in case_context.py
+- See case_context.example.py for template
 
 One sentence. Plain English. No asterisks. Tactical."""
 
@@ -387,7 +371,7 @@ class Speaker:
 
             # Play audio — uses PowerShell SoundPlayer which plays to Windows default device
             # For Webex to hear Cochran: set Windows default playback to "CABLE Input (VB-Audio Virtual Cable)"
-            # For Kris to hear Cochran locally: set default to Yealink headset
+            # For the client to hear Cochran locally: set default to Yealink headset
             # The dashboard can show which mode is active
             win_path = f'B:\\cochran_tmp\\cochran_{timestamp}.wav'
             powershell = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
@@ -425,7 +409,7 @@ def main():
     parser.add_argument("--no-speak", action="store_true", help="Disable TTS (text only)")
     parser.add_argument("--no-think", action="store_true", help="Disable LLM (transcription only)")
     parser.add_argument("--court", action="store_true", help="Courtroom mode: advice is careful, suitable for open court. Speaks aloud.")
-    parser.add_argument("--private", action="store_true", help="Private counsel mode: advice is for Kris only, NO TTS. Text output only.")
+    parser.add_argument("--private", action="store_true", help="Private counsel mode: advice is for the client only, NO TTS. Text output only.")
     args = parser.parse_args()
 
     # Mode logic
@@ -450,30 +434,30 @@ def main():
 Rule: Maximum ONE short sentence. Never more. No explanations.
 
 CRITICAL: Do NOT reveal strategy, weaknesses, or tactical advice. You are on the record.
-Your role is to make confident, measured statements that support Kris's position.
+Your role is to make confident, measured statements that support your client's position.
 Never tip off the other side about your strategy.
 Never use asterisks, markdown, bullet points or special characters. Plain English only.
 
-Case: Kris Racette v Fun Crew Pty Ltd, FWC C2026/1071
-- s351 General Protections, no minimum employment period
-- iPlay terminated same day they received Westpac letter
+                    Case: Configure in case_context.py
+                    - Case details configured in case_context.py
+                    - Case details configured in case_context.py
 
 One sentence. Confident. Plain English. On the record."""
     elif args.private:
-        THINKER_PROMPT = """You are Cochran - Kris's private legal counsel. NO ONE else can hear this.
+        THINKER_PROMPT = """You are Cochran - the client's private legal counsel. NO ONE else can hear this.
 
 Rule: Maximum TWO sentences. Be direct and tactical.
 Never use asterisks, markdown, bullet points or special characters. Plain English only.
 
 You can share ANY strategy, weaknesses, tactical advice. This is privileged.
 
-Case: Kris Racette v Fun Crew Pty Ltd, FWC C2026/1071
-- s351 General Protections, no minimum employment period
-- iPlay terminated same day they received Westpac letter
-- No inherent requirements assessment
-- s351 has NO cap
-- Probation is irrelevant to s351
-- AHRC criminal record discrimination is the strategic reserve
+                    Case: Configure in case_context.py
+                    - Case details configured in case_context.py
+                    - Case details configured in case_context.py
+                    - Case details configured in case_context.py
+                    - Case details configured in case_context.py
+                    - Case details configured in case_context.py
+                    - Case details configured in case_context.py
 
 Sharp. Tactical. Private counsel. Maximum two sentences. Plain English only."""
     else:

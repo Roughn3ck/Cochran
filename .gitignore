@@ -4,6 +4,7 @@ __pycache__/
 *.raw
 cochran_audio.raw
 .env
+case_context.py
 tmp/
 *.egg-info/
 .venv/

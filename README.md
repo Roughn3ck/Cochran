@@ -1,28 +1,38 @@
-# 🧤 Cochran — Listen → Think → Speak
+# 🧤 Cochran — Real-Time Legal AI for Live Calls
 
-Real-time legal AI for phone calls. Listens to the call, thinks strategically, speaks back.
+**Listen → Think → Speak.** Cochran sits in on phone calls — mediation, conciliation, disputes, negotiations — and provides real-time strategic counsel.
 
-Built for FWC conciliation: Kris Racette v Fun Crew Pty Ltd (iPlay), C2026/1071.
+Works for:
+- **FWC conciliation** (unfair dismissal, general protections)
+- **Family law mediation** (property settlements, parenting)
+- **Tenancy disputes** (VCAT, NCAT, QCAT)
+- **Neighbour disputes** (fences, noise, trees)
+- **Insurance claims** (denial, underpayment)
+- **Employment negotiations** (contracts, severance)
+- **Any adversarial call where you need a second brain**
 
 ## Architecture
 
 ```
-Webex Call Audio
+Call Audio (Webex/Zoom/Phone)
        ↓
-VB-Cable Input (Windows playback device for Webex)
+VB-Cable (virtual audio cable)
        ↓
-VB-Cable Output (Windows recording device)
-       ↓ (ffmpeg captures to raw file)
+ffmpeg → cochran_audio.raw (16kHz mono PCM)
        ↓
-cochran_audio.raw (16kHz mono 16-bit PCM)
+Whisper (faster-whisper, CUDA) → transcript
        ↓
-Whisper (faster-whisper, CUDA RTX 5080) → transcript
+LLM (DeepSeek V3.2 via Ollama) → strategic response
        ↓
-DeepSeek V3.2 (Ollama cloud) → strategic response
+Kokoro TTS → WAV audio
        ↓
-Kokoro TTS (in-memory) → WAV audio
-       ↓
-PowerShell SoundPlayer → VB-Cable Input → Webex mic
+VB-Cable → back into the call
+
+Browser Dashboard (localhost:8765)
+  → 🤐 Private Counsel (text only, your eyes only)
+  → ⚖️ Court Open (speaks aloud, on the record)
+  → 🎙️ Default (speaks aloud, unrestricted)
+  → 🔇 Mute (listening only)
 ```
 
 ## Prerequisites
@@ -30,79 +40,99 @@ PowerShell SoundPlayer → VB-Cable Input → Webex mic
 ### Windows
 - **VB-Audio Virtual Cable** (free): https://vb-audio.com/Cable/
 - **ffmpeg** for Windows: https://ffmpeg.org/download.html
-- **nircmd** (for audio device switching): included or download from https://www.nirsoft.net/utils/nircmd.html
-- Place `ffmpeg.exe` and `nircmd.exe` in `C:\Users\krisr\Documents\ffmpeg\`
+- Place `ffmpeg.exe` in `C:\Users\<you>\Documents\ffmpeg\`
 
-### WSL (Ubuntu)
+### WSL/Linux
 ```bash
-# Python venv with faster-whisper
-/home/krisr/.local/share/whisper-venv/bin/python3
+# faster-whisper with CUDA
+pip install faster-whisper torch  # in a venv
 
-# Ollama with DeepSeek V3.2
+# Ollama with DeepSeek
 ollama pull deepseek-v3.2:cloud
 
 # Kokoro TTS
-/home/krisr/.local/share/kokoro-venv/bin/python3
+pip install kokoro  # in a venv
 ```
 
 ## Audio Setup (Windows)
 
-This is the #1 source of bugs. Follow exactly:
+**⚠️ This is the #1 source of bugs. Follow exactly.**
 
 ### Step 1: Windows Sound Settings
-- **Default playback** = Your normal speakers/headset (NOT CABLE Input)
+- **Default playback** = Your normal speakers/headphones (NOT CABLE Input)
 - **Default recording** = Your normal microphone (NOT CABLE Output)
 
-### Step 2: Webex Audio Settings (in the Webex app)
+### Step 2: Call App Audio Settings (Webex/Zoom/Teams)
 - **Speaker** = `CABLE Input (VB-Audio Virtual Cable)`
 - **Microphone** = `CABLE Output (VB-Audio Virtual Cable)`
 
 ### Step 3: VB-Cable Output Properties
-- Right-click speaker icon → Sounds → Recording tab
-- Double-click `CABLE Output` → Listen tab
+- Right-click speaker → Sounds → Recording → CABLE Output → Listen tab
 - ✅ Check "Listen to this device"
-- Playback through: Your speakers/headset
+- Playback through: Your speakers/headphones
 - This lets YOU hear the call while Cochran captures it
 
 ### Step 4: Start audio capture
-Double-click `stream_to_file.bat` — this starts ffmpeg capturing from CABLE Output.
+```
+stream_to_file.bat
+```
 
 ## Running the Pipeline
 
-### Terminal 1 (WSL): Dashboard
+### Terminal 1: Dashboard
 ```bash
-cd /mnt/b/Github/Cochran
+cd /path/to/Cochran
 python3 dashboard_server.py
-# Dashboard: http://localhost:8765
+# → http://localhost:8765
 ```
 
-### Terminal 2 (WSL): Pipeline
+### Terminal 2: Pipeline
 ```bash
-export XDG_CACHE_HOME="/home/krisr/.local/share/whisper"
+# Set environment variables for CUDA/CUDA libs
+export XDG_CACHE_HOME="$HOME/.local/share/whisper"
 export HF_HUB_DISABLE_TELEMETRY=1
-export LD_LIBRARY_PATH="/home/krisr/.local/share/whisper-venv/lib/python3.12/site-packages/nvidia/cublas/lib:/home/krisr/.local/share/whisper-venv/lib/python3.12/site-packages/nvidia/cudnn/lib:/home/krisr/.local/share/whisper-venv/lib/python3.12/site-packages/nvidia/cuda_nvrtc/lib"
+export LD_LIBRARY_PATH="$HOME/.local/share/whisper-venv/lib/python3.12/site-packages/nvidia/cublas/lib:$HOME/.local/share/whisper-venv/lib/python3.12/site-packages/nvidia/cudnn/lib:$HOME/.local/share/whisper-venv/lib/python3.12/site-packages/nvidia/cuda_nvrtc/lib"
 
-cd /mnt/b/Github/Cochran
-/home/krisr/.local/share/whisper-venv/bin/python3 cochran_live.py --private
+python3 cochran_live.py --private
 ```
 
 ### Modes
-- `--private` — Text only. Strategic advice for Kris. No voice output. **Start here.**
-- `--court` — Voice enabled. Careful statements suitable for open court. Everyone can hear.
-- `--default` — Voice enabled. No restrictions.
-- `--no-think` — Transcription only. No LLM.
-- `--no-speak` — Listen and think only. No TTS.
+| Flag | Mode | Voice | Prompt Style |
+|------|------|-------|-------------|
+| `--private` | Private Counsel | ❌ Text only | Full strategy, no holds barred |
+| `--court` | Court Open | ✅ Speaks aloud | Careful, on the record |
+| `--default` | Default | ✅ Speaks aloud | No restrictions |
+| `--no-think` | Transcribe only | ❌ | No LLM, just transcript |
+| `--no-speak` | Listen + Think | ❌ | No voice output |
 
 ### Dashboard (http://localhost:8765)
-- 🤐 **Private Counsel** — Text only, not spoken aloud
-- ⚖️ **Court Open** — Voice enabled, careful on-record statements
-- 🎙️ **Default** — Voice enabled, no restrictions
-- 🔇 **Mute** — Listening only
+Click buttons to switch modes in real-time. No restart needed.
 
-Switching modes changes:
-- The LLM system prompt (what advice to give)
-- Whether TTS is enabled
-- **Future:** Windows default audio device (auto-switch between speakers and CABLE Input)
+## Case Context
+
+Create `case_context.py` (not in repo — see `.gitignore`) with your specific case details:
+
+```python
+PRIVATE_PROMPT = """You are Cochran - the client's private counsel.
+Case: [Your case details here]
+Rule: Maximum TWO sentences. Be direct. Plain English only."""
+
+COURT_PROMPT = """You are Cochran - speaking in open court.
+Case: [Your case details here]
+Rule: Maximum ONE short sentence. No strategy leaks. Plain English only."""
+```
+
+See `case_context.example.py` for the template.
+
+## Latency Budget
+
+| Step | Time |
+|------|------|
+| Whisper (4s chunk) | ~0.1s |
+| DeepSeek V3.2 Cloud | ~2.7s |
+| Kokoro TTS (in-memory) | ~1.1s |
+| Audio playback | ~0.5s |
+| **Total** | **~4.5s** |
 
 ## Key Files
 
@@ -113,36 +143,26 @@ Switching modes changes:
 | `dashboard.html` | Web dashboard with mode switching |
 | `stream_to_file.bat` | Windows ffmpeg audio capture |
 | `setup_audio.bat` | Audio routing instructions |
-| `README.md` | This file |
-
-## Latency Budget
-
-| Step | Time |
-|------|------|
-| Whisper (4s chunk) | ~0.1s |
-| DeepSeek V3.2 Cloud | ~2.7s |
-| Kokoro TTS (in-memory) | ~1.1s |
-| PowerShell Play() | ~0.5s |
-| **Total** | **~4.5s** |
+| `case_context.example.py` | Template for case-specific prompts |
+| `.env.example` | Environment variables template |
 
 ## Known Issues
 
-1. **Old audio buffer** — Pipeline now skips to end of existing file on startup (`_caught_up` flag)
-2. **"Thank you" spam** — Webex hold music/greetings get transcribed. Not a bug — it's real audio
-3. **Audio volume** — VB-Cable at 98% amplitude causes clipping. Need to adjust CABLE Output gain in Windows
-4. **nircmd auto-switch** — Works but caused chaos when it changed Windows default playback. DON'T auto-switch. Manual only.
-5. **"Kris" mispronounced as "Crease"** — `clean_for_speech()` maps both to "Chris" for Kokoro
-6. **Asterisks in TTS** — `clean_for_speech()` strips all markdown before speech output
+1. **Old audio buffer** — Pipeline skips to end of file on startup. Always restart `stream_to_file.bat` before a call.
+2. **Audio volume** — If VB-Cable is at 98%+, adjust CABLE Output gain in Windows Sound settings.
+3. **"Kris" → "Crease"** — Whisper mispronounces some names. `clean_for_speech()` remaps known ones.
+4. **Asterisks in TTS** — `clean_for_speech()` strips markdown before speech output.
+5. **nircmd auto-switch** — DON'T auto-switch Windows audio devices. It causes chaos. Set them manually.
 
-## Case Context
+## Use Cases
 
-Kris Racette v Fun Crew Pty Ltd (iPlay), FWC C2026/1071
-- s351 General Protections — no minimum employment period
-- iPlay terminated same day they received Westpac letter about Kris's conviction
-- No inherent requirements assessment was done
-- s351 has NO cap
-- Probation is irrelevant to s351
-- AHRC criminal record discrimination is the strategic reserve
+- 🏛️ **FWC Conciliation** — Unfair dismissal, general protections, enterprise agreements
+- 👨‍👩‍👧 **Family Law Mediation** — Property, parenting, spousal maintenance
+- 🏠 **Tenancy Disputes** — VCAT/NCAT/QCAT hearings, bond claims, eviction defence
+- 🏡 **Neighbour Disputes** — Fences, noise, trees, easements
+- 🛡️ **Insurance Claims** — Denial, underpayment, bad faith
+- 💼 **Employment Negotiations** — Contracts, severance, workplace rights
+- 📞 **Any call where you need a second brain**
 
 ## License
 
