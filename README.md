@@ -1,4 +1,4 @@
-# 🧤 Cochran — Real-Time Legal AI for Live Calls
+# ⚖️ Cochran — Real-Time Legal AI for Live Calls
 
 **Listen → Think → Speak.** Cochran sits in on phone calls — mediation, conciliation, disputes, negotiations — and provides real-time strategic counsel.
 
@@ -113,13 +113,13 @@ Click buttons to switch modes in real-time. No restart needed.
 Create `case_context.py` (not in repo — see `.gitignore`) with your specific case details:
 
 ```python
-PRIVATE_PROMPT = """You are Cochran - the client's private counsel.
+PRIVATE_PROMPT = """You are Cochran - Kris's private legal counsel.
 Case: [Your case details here]
-Rule: Maximum TWO sentences. Be direct. Plain English only."""
+Be ice cold. Measured. Strategic. Say as much as needed, as few words as possible. Plain English only."""
 
 COURT_PROMPT = """You are Cochran - speaking in open court.
 Case: [Your case details here]
-Rule: Maximum ONE short sentence. No strategy leaks. Plain English only."""
+CRITICAL: No strategy leaks. Say as much as needed, as few words as possible. Plain English only."""
 ```
 
 See `case_context.example.py` for the template.
