@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Audio files (never commit)
+*.wav
+*.raw
+
+# TTS temp output
+cochran_tmp/
+
+# Case context files (gitignored — never commit case details)
+matters/*.py
+!matters/test_context.py
+!matters/case_context.example.py
+
+# Transcripts (gitignored — never commit call recordings)
+transcripts/*.txt
+
+# Environment files
+.env
+
+# OS files
+.DS_Store
+Thumbs.db

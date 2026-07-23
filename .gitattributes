@@ -1,0 +1,43 @@
+# Git Attributes — Cochran Legal Council
+# Handle line endings for cross-OS compatibility
+
+# Auto-detect text files and normalize line endings to LF in the repo
+* text=auto
+
+# Batch files — CRLF on checkout (Windows needs CRLF for .bat files)
+*.bat text eol=crlf
+
+# Shell scripts — LF on checkout (Linux/WSL needs LF)
+*.sh text eol=lf
+
+# Python files — LF (works on all OS, Python handles both)
+*.py text eol=lf
+
+# HTML/CSS/JS — LF
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+
+# Markdown — LF
+*.md text eol=lf
+
+# JSON/YAML — LF
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Env files — LF
+*.env text eol=lf
+.env.example text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary files — never touch
+*.jpg binary
+*.png binary
+*.wav binary
+*.raw binary
+*.pyc binary
+*.sqlite binary
+*.sqlite-shm binary
+*.sqlite-wal binary
