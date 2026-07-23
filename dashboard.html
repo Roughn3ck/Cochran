@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cochran Live</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; padding: 15px; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 20px; margin-bottom: 8px; }
+.gloves { font-size: 24px; }
+.controls { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+.btn { padding: 12px 24px; border: 2px solid #333; background: #111; color: #aaa; font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+.btn:hover { border-color: #666; color: #fff; transform: scale(1.02); }
+.btn.active-private { background: #cc0000; color: #fff; border-color: #ff3333; box-shadow: 0 0 20px rgba(204,0,0,0.6); }
+.btn.active-court { background: #cc6600; color: #fff; border-color: #ff9900; box-shadow: 0 0 20px rgba(204,102,0,0.6); }
+.btn.active-default { background: #0066cc; color: #fff; border-color: #3399ff; box-shadow: 0 0 20px rgba(0,102,204,0.6); }
+.btn.active-mute { background: #333; color: #888; border-color: #555; }
+.mode-desc { font-size: 13px; color: #888; margin-bottom: 5px; }
+.audio-info { font-size: 12px; color: #666; margin-bottom: 15px; padding: 8px; border: 1px solid #222; background: #0d0d0d; border-radius: 3px; }
+.section { margin-top: 12px; border: 1px solid #1a3a1a; padding: 12px; background: #0d1a0d; border-radius: 4px; }
+.section h2 { color: #00cc33; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; }
+#response { color: #ffff00; font-size: 18px; font-weight: bold; min-height: 30px; line-height: 1.4; }
+#transcript { color: #00ff41; font-size: 13px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; line-height: 1.5; }
+#latency { color: #888; font-size: 12px; margin-top: 4px; }
+.flash { animation: flash 1.5s ease-out; }
+@keyframes flash { 0% { background-color: #ffff00; } 100% { background-color: #0d1a0d; } }
+</style>
+</head>
+<body>
+<h1><span class="gloves">🧤</span> COCHRAN</h1>
+
+<div class="controls">
+<button class="btn" id="btnPrivate" onclick="setMode('private')">🤐 Private Counsel</button>
+<button class="btn" id="btnCourt" onclick="setMode('court')">⚖️ Court Open</button>
+<button class="btn" id="btnDefault" onclick="setMode('default')">🎙️ Default</button>
+<button class="btn" id="btnMute" onclick="setMode('mute')">🔇 Mute</button>
+</div>
+<div class="mode-desc" id="modeDesc">PRIVATE COUNSEL — Text only. Advice for Kris only. Not spoken aloud.</div>
+<div class="audio-info" id="audioInfo">🔊 Audio output: Yealink headset (private mode)</div>
+
+<div class="section">
+<h2>🎯 Strategic Note</h2>
+<div id="response">Waiting for audio...</div>
+<div id="latency"></div>
+</div>
+
+<div class="section">
+<h2>📝 Live Transcript</h2>
+<div id="transcript">Waiting for audio...</div>
+</div>
+
+<script>
+let currentMode = 'private';
+let lastResponse = '';
+let lastTranscript = '';
+
+const audioDevices = {
+    private: '🎧 Yealink headset (Kris hears locally)',
+    court: '🔌 CABLE Input → Webex mic (everyone hears)',
+    default: '🔌 CABLE Input → Webex mic (everyone hears)',
+    mute: '🔇 No audio output'
+};
+
+const modeDescs = {
+    private: 'PRIVATE COUNSEL — Text only. Advice for Kris only. Not spoken aloud.',
+    court: 'COURT OPEN — Careful statements suitable for open court. Speaks aloud. Everyone can hear.',
+    default: 'DEFAULT — Speaks aloud with no restrictions.',
+    mute: 'MUTED — Listening only. No LLM responses, no audio.'
+};
+
+function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.btn').forEach(b => b.className = 'btn');
+    document.getElementById('modeDesc').textContent = modeDescs[mode];
+    document.getElementById('audioInfo').textContent = '🔊 Audio output: ' + audioDevices[mode];
+    
+    if (mode === 'private') document.getElementById('btnPrivate').className = 'btn active-private';
+    else if (mode === 'court') document.getElementById('btnCourt').className = 'btn active-court';
+    else if (mode === 'default') document.getElementById('btnDefault').className = 'btn active-default';
+    else if (mode === 'mute') document.getElementById('btnMute').className = 'btn active-mute';
+
+    fetch('/api/mode', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mode: mode})
+    }).catch(() => {});
+}
+
+async function update() {
+    try {
+        const r = await fetch('/api/status');
+        const data = await r.json();
+        document.getElementById('latency').textContent = data.latency ? `Latency: ${data.latency}` : '';
+        
+        if (data.response && data.response !== lastResponse) {
+            lastResponse = data.response;
+            document.getElementById('response').textContent = data.response;
+            document.getElementById('response').className = 'flash';
+            setTimeout(() => document.getElementById('response').className = '', 1500);
+        }
+        
+        if (data.transcript && data.transcript !== lastTranscript) {
+            lastTranscript = data.transcript;
+            document.getElementById('transcript').textContent = data.transcript;
+            document.getElementById('transcript').scrollTop = 99999;
+        }
+
+        // Sync mode from pipeline
+        if (data.mode && data.mode !== currentMode) {
+            setMode(data.mode);
+        }
+    } catch(e) {}
+}
+
+setMode('private');
+setInterval(update, 1500);
+update();
+</script>
+</body>
+</html>
