@@ -1,0 +1,41 @@
+#!/bin/bash
+# Kokoro TTS wrapper for OpenClaw
+# Usage: kokoro-tts "text to speak" [output.wav] [voice]
+# Default voice: af_nicole
+
+TEXT="${1:-Hello}"
+OUTPUT="${2:-/tmp/kokoro-output.wav}"
+VOICE="${3:-af_nicole}"
+
+export HF_HUB_DISABLE_TELEMETRY=1
+export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
+
+/home/krisr/.local/share/kokoro-venv/bin/python3 -c "
+import warnings, os
+warnings.filterwarnings('ignore')
+os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+
+from kokoro import KPipeline
+import soundfile as sf
+import sys
+import numpy as np
+
+text = sys.argv[1]
+output = sys.argv[2]
+voice = sys.argv[3]
+
+pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
+generator = pipeline(text, voice=voice, speed=1.0)
+chunks = []
+for gs, ps, audio in generator:
+    chunks.append(audio)
+
+if chunks:
+    full_audio = np.concatenate(chunks)
+    sf.write(output, full_audio, 24000)
+    print(f'Wrote {len(full_audio)/24000:.1f}s to {output}', file=sys.stderr)
+else:
+    print('No audio generated', file=sys.stderr)
+    sys.exit(1)
+" "$TEXT" "$OUTPUT" "$VOICE" 2>&1 | grep -v "UserWarning\|FutureWarning\|weight_norm\|rnn.py\|Defaulting repo_id\|suppress this warning"

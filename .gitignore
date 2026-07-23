@@ -5,9 +5,10 @@ __pycache__/
 .venv/
 *.egg-info/
 
-# Audio files (never commit)
-*.wav
+# Audio files (never commit) — except dependency reference WAV
 *.raw
+*.wav
+!dependencies/cochran-reference-24k.wav
 
 # TTS temp output
 cochran_tmp/
@@ -19,6 +20,12 @@ matters/*.py
 
 # Transcripts (gitignored — never commit call recordings)
 transcripts/*.txt
+
+# Large model files — excluded from git (see dependencies/README.md)
+dependencies/kokoro-model/kokoro-v1_0.pth
+
+# Driver files — available from vendor
+dependencies/VBCABLE_Driver_Pack45/
 
 # Environment files
 .env
